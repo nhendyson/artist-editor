@@ -18,7 +18,8 @@ export type TranscriptWord = { text: string; start: number; end: number };
 
 export type WordGroup = TranscriptWord[];
 
-export type Transcript = { text: string; words: TranscriptWord[] }[];
+/** A transcript segment may carry its own display range when it is a lyric line. */
+export type Transcript = { text: string; words: TranscriptWord[]; start?: number; end?: number }[];
 
 /** Size and mtime of a source when it was last hashed/probed; a mismatch
  *  means the bytes may have changed and the asset is re-examined. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { timingForSection, validateSongTiming, type SongTiming } from '../src/song-timing';
+import { songTimingToTranscript, timingForSection, validateSongTiming, type SongTiming } from '../src/song-timing';
 import { loadSongTiming, saveSongTiming, songTimingPath } from '../src/song-timing-store';
 
 const timing = (): SongTiming => ({
@@ -55,5 +55,16 @@ describe('song timing', () => {
 		expect(await saveSongTiming(fs, value)).toBe('artist-editor/timings/timing-v1.json');
 		expect(await loadSongTiming(fs, 'timing-v1')).toEqual(value);
 		expect(() => songTimingPath('../outside-project')).toThrow('only letters');
+	});
+
+	it('converts display timing into native lyric transcript boundaries', () => {
+		const transcript = songTimingToTranscript(timing());
+		expect(transcript).toHaveLength(1);
+		expect(transcript[0]).toMatchObject({
+			text: 'im punching the air',
+			start: 1,
+			end: 3,
+		});
+		expect(transcript[0]?.words.at(-1)?.end).toBe(3);
 	});
 });

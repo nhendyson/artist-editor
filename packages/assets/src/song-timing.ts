@@ -5,6 +5,8 @@
 /** The portable, recording-specific timing format used by Artist Editor. */
 export const SONG_TIMING_SCHEMA_VERSION = 1;
 
+import type { Transcript, TranscriptWord } from './types';
+
 export type SampleRange = { startSample: number; endSample: number };
 
 export type TimedWord = SampleRange & {
@@ -63,6 +65,8 @@ export type SectionTimingItem = TimingItem & {
 	/** Portion visible inside the selected section. */
 	sectionRange: SampleRange;
 };
+
+type TimingTranscriptOptions = { sectionId?: string };
 
 const hasRange = (value: unknown): value is SampleRange => {
 	if (!value || typeof value !== 'object') return false;
@@ -159,4 +163,57 @@ export function timingForSection(timing: SongTiming, sectionId: string): Section
 				endSample: Math.min(displayRangeOf(item).endSample, section.endSample),
 			},
 		}));
+}
+
+/**
+ * Converts one revision (or one named section) into Diffusion's native
+ * transcript shape. The segment range is the lyric's display range, so
+ * Artist Lines holds it through the intended gap until the next line.
+ */
+export function songTimingToTranscript(timing: SongTiming, options: TimingTranscriptOptions = {}): Transcript {
+	validateSongTiming(timing);
+	const sampleRate = timing.recording.sampleRate;
+	const items = options.sectionId ? timingForSection(timing, options.sectionId) : timing.items.map((item) => ({
+		...item,
+		sourceRange: { ...displayRangeOf(item) },
+		sectionRange: { ...displayRangeOf(item) },
+	}));
+
+	return items.flatMap((item) => {
+		if ('kind' in item || !item.text) return [];
+		const display = item.sectionRange;
+		const words = transcriptWords(item, display, sampleRate);
+		return [{
+			text: item.text,
+			words,
+			start: display.startSample / sampleRate,
+			end: display.endSample / sampleRate,
+		}];
+	});
+}
+
+/** Whether parsed JSON is the timing envelope rather than an ordinary transcript array. */
+export function isSongTiming(value: unknown): value is SongTiming {
+	return !!value && typeof value === 'object' && !Array.isArray(value)
+		&& (value as { schemaVersion?: unknown }).schemaVersion === SONG_TIMING_SCHEMA_VERSION
+		&& Array.isArray((value as { items?: unknown }).items)
+		&& !!(value as { recording?: unknown }).recording;
+}
+
+function transcriptWords(item: LyricCue, display: SampleRange, sampleRate: number): TranscriptWord[] {
+	const text = item.words?.map((word) => word.text) ?? item.text.split(/\s+/).filter(Boolean);
+	if (!text.length) return [];
+
+	const lengths = text.map((word) => word.length);
+	const total = lengths.reduce((sum, length) => sum + length, 0);
+	let elapsed = 0;
+	return text.map((word, index) => {
+		const start = display.startSample + (elapsed / total) * (display.endSample - display.startSample);
+		elapsed += lengths[index]!;
+		return {
+			text: word,
+			start: start / sampleRate,
+			end: (display.startSample + (elapsed / total) * (display.endSample - display.startSample)) / sampleRate,
+		};
+	});
 }

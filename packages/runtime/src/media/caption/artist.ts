@@ -4,11 +4,11 @@
 
 import { CaptionAlign, CaptionType, FontStyle, TextAlign, TextBaseline, TextCase } from '../../constants';
 import { renderText } from '../../utils/text';
-import { findActiveGroup, resolveTranscript, setChars } from './utils';
+import { resolveTranscript, setChars } from './utils';
 import { placeCaption } from './position';
 
 import type { Entity, World } from 'koota';
-import type { Asset, WordGroup } from '@diffusionstudio/assets';
+import type { Asset, Transcript, WordGroup } from '@diffusionstudio/assets';
 import type { CaptionDecoder, CaptionPresetStyle } from './types';
 
 const WIDTH = 880;
@@ -43,6 +43,7 @@ export class ArtistCaptionDecoder implements CaptionDecoder {
 	public styled = false;
 
 	private readonly asset: Asset;
+	private lines: Array<{ text: string; start: number; end: number; words: WordGroup }> = [];
 	private currentGroupIndex = -1;
 
 	constructor(asset: Asset) {
@@ -53,7 +54,8 @@ export class ArtistCaptionDecoder implements CaptionDecoder {
 	private async init(): Promise<void> {
 		if (this.ready) return;
 		const transcript = await resolveTranscript(this.asset);
-		this.groups = transcript.map(segment => segment.words).filter(words => words.length > 0);
+		this.lines = lyricLines(transcript);
+		this.groups = this.lines.map((line) => line.words);
 		this.ready = true;
 	}
 
@@ -71,7 +73,7 @@ export class ArtistCaptionDecoder implements CaptionDecoder {
 	}
 
 	public seekTo(world: World, entity: Entity, relativeTime: number): void {
-		const groupIndex = findActiveGroup(this.groups, relativeTime);
+		const groupIndex = this.lines.findIndex((line) => relativeTime >= line.start && relativeTime <= line.end);
 
 		if (groupIndex === -1) {
 			setChars(world, entity, '');
@@ -81,7 +83,7 @@ export class ArtistCaptionDecoder implements CaptionDecoder {
 
 		if (groupIndex !== this.currentGroupIndex) {
 			this.currentGroupIndex = groupIndex;
-			setChars(world, entity, this.groups[groupIndex]!.map(word => word.text).join(' '));
+			setChars(world, entity, this.lines[groupIndex]!.text);
 		}
 	}
 
@@ -91,6 +93,21 @@ export class ArtistCaptionDecoder implements CaptionDecoder {
 
 	public dispose(): void {
 		this.groups = [];
+		this.lines = [];
 		this.currentGroupIndex = -1;
 	}
+}
+
+function lyricLines(transcript: Transcript): Array<{ text: string; start: number; end: number; words: WordGroup }> {
+	return transcript.flatMap((segment) => {
+		const first = segment.words[0];
+		const last = segment.words.at(-1);
+		if (!first || !last) return [];
+		return [{
+			text: segment.text,
+			start: segment.start ?? first.start,
+			end: segment.end ?? last.end,
+			words: segment.words,
+		}];
+	});
 }

@@ -53,7 +53,7 @@ export function parseSubtitles(text: string): Transcript {
       return { text: token, start: wordStart, end: start + (elapsed / total) * duration };
     });
 
-    transcript.push({ text: tokens.join(' '), words });
+    transcript.push({ text: tokens.join(' '), words, start, end });
   }
 
   return transcript.sort((a, b) => a.words[0].start - b.words[0].start);
