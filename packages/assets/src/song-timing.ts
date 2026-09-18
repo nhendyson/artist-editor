@@ -248,6 +248,9 @@ export function createSongTimingFromTranscript(input: CreateSongTimingFromTransc
 			})) : undefined,
 		};
 	});
+	const first = items[0]?.display.startSample;
+	const last = items.at(-1)?.display.endSample;
+	if (first === undefined || last === undefined) throw new Error('The local transcript has no visible lyric lines.');
 	return validateSongTiming({
 		schemaVersion: SONG_TIMING_SCHEMA_VERSION,
 		id: input.id,
@@ -257,8 +260,11 @@ export function createSongTimingFromTranscript(input: CreateSongTimingFromTransc
 		sections: [{
 			id: 'full-track',
 			label: input.sectionLabel.trim() || 'Full track',
-			startSample: 0,
-			endSample: recording.durationSamples,
+			// A verse-only subtitle file becomes a verse-only reusable section.
+			// That means its master audio starts where the first lyric starts and
+			// does not silently turn into an entire-song draft.
+			startSample: first,
+			endSample: last,
 			boundaryPolicy: 'include-active-line',
 		}],
 	});

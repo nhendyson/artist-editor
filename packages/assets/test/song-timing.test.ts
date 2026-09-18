@@ -92,6 +92,7 @@ describe('song timing', () => {
 		});
 		expect(imported.approved).toBe(true);
 		expect(imported.sections[0]?.label).toBe('Verse 1');
+		expect(imported.sections[0]).toMatchObject({ startSample: 48_000, endSample: 144_000 });
 		expect(songTimingToTranscript(imported)[0]).toMatchObject({ text: 'hold this line', start: 1, end: 3 });
 	});
 });

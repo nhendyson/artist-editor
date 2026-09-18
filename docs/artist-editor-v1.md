@@ -24,6 +24,8 @@ recording and reuse a section on several one-shot drafts without losing manual w
   transcript and the local master recording. It hashes the full master file,
   creates an approved revision only after an explicit review check, and writes
   it to the project library for reuse.
+- A timing made from a verse-only subtitle file defines that verse's actual
+  cue span, so its reusable master-audio range does not expand to the full song.
 - Caption text, times, crop, and local style survive undo, save, and reopen.
 - Paused hover skimming previews without seeking or creating history. Click seeks.
 
