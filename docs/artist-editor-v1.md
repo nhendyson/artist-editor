@@ -24,6 +24,10 @@ recording and reuse a section on several one-shot drafts without losing manual w
   transcript and the local master recording. It hashes the full master file,
   creates an approved revision only after an explicit review check, and writes
   it to the project library for reuse.
+- Song timing review shows every local caption line before approval. An artist
+  can edit each line's text, start, and exclusive end in seconds, or set each
+  line to hold until the next lyric starts. Those edits are written only into
+  the approved timing revision; the imported Whisper `.srt` remains unchanged.
 - An imported audio asset exposes **Transcribe locally**. It runs the fixed
   on-device `whisper-cli` runner against a user-selected local Whisper model,
   returns a local `.srt` asset, and never downloads a model or falls back to a
@@ -44,6 +48,8 @@ recording and reuse a section on several one-shot drafts without losing manual w
 - A local transcription is a draft: it must be reviewed before it can become
   reusable song timing. The runner is a fixed executable with fixed arguments,
   writes only a temporary output, and cannot be used as a general shell.
+- Timing review preserves intentional gaps. The final line retains its explicit
+  end when the hold-to-next command is used.
 - Source timing remains in integer samples. The initial slice supports 1x playback.
 
 ## Edges
