@@ -199,7 +199,7 @@ export function songTimingToTranscript(timing: SongTiming, options: TimingTransc
 			startSample: sourceRange.startSample - (sectionOffset ?? 0),
 			endSample: sourceRange.endSample - (sectionOffset ?? 0),
 		};
-		const words = transcriptWords(item, display, sampleRate);
+		const words = transcriptWords(item, sampleRate, sectionOffset ?? 0);
 		return [{
 			text: item.text,
 			words,
@@ -270,20 +270,13 @@ export function createSongTimingFromTranscript(input: CreateSongTimingFromTransc
 	});
 }
 
-function transcriptWords(item: LyricCue, display: SampleRange, sampleRate: number): TranscriptWord[] {
-	const text = item.words?.map((word) => word.text) ?? item.text.split(/\s+/).filter(Boolean);
-	if (!text.length) return [];
-
-	const lengths = text.map((word) => word.length);
-	const total = lengths.reduce((sum, length) => sum + length, 0);
-	let elapsed = 0;
-	return text.map((word, index) => {
-		const start = display.startSample + (elapsed / total) * (display.endSample - display.startSample);
-		elapsed += lengths[index]!;
-		return {
-			text: word,
-			start: start / sampleRate,
-			end: (display.startSample + (elapsed / total) * (display.endSample - display.startSample)) / sampleRate,
-		};
-	});
+function transcriptWords(item: LyricCue, sampleRate: number, sectionOffset: number): TranscriptWord[] {
+	// Line timing is useful on its own. Do not fabricate word timings from text
+	// length: single-word, karaoke, and build effects must wait for reviewed or
+	// explicitly imported word spans.
+	return (item.words ?? []).map((word) => ({
+		text: word.text,
+		start: (word.startSample - sectionOffset) / sampleRate,
+		end: (word.endSample - sectionOffset) / sampleRate,
+	}));
 }

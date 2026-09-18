@@ -65,7 +65,7 @@ describe('song timing', () => {
 			start: 1,
 			end: 3,
 		});
-		expect(transcript[0]?.words.at(-1)?.end).toBe(3);
+		expect(transcript[0]?.words).toEqual([]);
 	});
 
 	it('rebases a selected section so it starts at zero in a new draft', () => {
@@ -94,5 +94,6 @@ describe('song timing', () => {
 		expect(imported.sections[0]?.label).toBe('Verse 1');
 		expect(imported.sections[0]).toMatchObject({ startSample: 48_000, endSample: 144_000 });
 		expect(songTimingToTranscript(imported)[0]).toMatchObject({ text: 'hold this line', start: 1, end: 3 });
+		expect(songTimingToTranscript(imported, { sectionId: 'full-track' })[0]?.words[0]).toMatchObject({ text: 'hold', start: 0, end: 0.5 });
 	});
 });

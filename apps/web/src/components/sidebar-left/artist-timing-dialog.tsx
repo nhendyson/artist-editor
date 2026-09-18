@@ -119,7 +119,12 @@ function TimingSelect<T extends AudioAsset | TranscriptAsset>(props: { label: st
 }
 
 function parseLocalTranscript(contents: string, mimeType: string): Transcript {
-	if (mimeType === 'application/x-subrip' || mimeType === 'text/vtt') return parseSubtitles(contents);
+	if (mimeType === 'application/x-subrip' || mimeType === 'text/vtt') {
+		// SRT/VTT provides cue timing, not reviewed word timing. Keep the line
+		// spans and leave words empty rather than turning character length into
+		// a misleading lyric alignment.
+		return parseSubtitles(contents).map(({ text, start, end }) => ({ text, start, end, words: [] }));
+	}
 	const parsed: unknown = JSON.parse(contents);
 	if (isSongTiming(parsed)) throw new Error('This is already a song-timing revision. Use it directly in Artist drafts.');
 	if (!Array.isArray(parsed)) throw new Error('Transcript JSON must be an array of timed lines.');

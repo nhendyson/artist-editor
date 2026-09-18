@@ -73,7 +73,10 @@ export class ArtistCaptionDecoder implements CaptionDecoder {
 	}
 
 	public seekTo(world: World, entity: Entity, relativeTime: number): void {
-		const groupIndex = this.lines.findIndex((line) => relativeTime >= line.start && relativeTime <= line.end);
+		// Display ends are exclusive. When a new vocal starts at the prior
+		// line's endpoint, the new line owns that exact frame instead of the
+		// old one lingering for a frame.
+		const groupIndex = this.lines.findIndex((line) => relativeTime >= line.start && relativeTime < line.end);
 
 		if (groupIndex === -1) {
 			setChars(world, entity, '');
@@ -102,11 +105,13 @@ function lyricLines(transcript: Transcript): Array<{ text: string; start: number
 	return transcript.flatMap((segment) => {
 		const first = segment.words[0];
 		const last = segment.words.at(-1);
-		if (!first || !last) return [];
+		const start = segment.start ?? first?.start;
+		const end = segment.end ?? last?.end;
+		if (start === undefined || end === undefined || end <= start) return [];
 		return [{
 			text: segment.text,
-			start: segment.start ?? first.start,
-			end: segment.end ?? last.end,
+			start,
+			end,
 			words: segment.words,
 		}];
 	});
