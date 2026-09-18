@@ -41,11 +41,9 @@ import {
   TextStyle,
   Tool,
   ToolType,
-  WebFonts,
   getWebFonts,
   isCaption,
   isText,
-  loadWebFont,
 } from '@diffusionstudio/runtime';
 import { getLocalFonts } from '@/engine/fonts';
 import { useDerived, useEditor, useTool } from '@/engine/hooks';
@@ -129,9 +127,6 @@ export function TextPanel(props: TextPanelProps) {
     setSelectedFamily(family);
     editor.editProperty(entity(), 'fontFamily', family);
 
-    if (family in WebFonts) {
-      void loadWebFont(world, family as keyof typeof WebFonts);
-    }
   };
 
   const handleFontWeightChange = (weight: string) => {
@@ -291,16 +286,6 @@ export function FontDropdown(props: FontDropdownProps) {
   const [webfonts] = createSignal(getWebFonts());
   const [fontQuery, setFontQuery] = createSignal('');
   const fontsPermission = usePermissionState('local-fonts');
-
-  // Preload web fonts for preview
-  onMount(() => {
-    if (document.visibilityState !== 'visible') return;
-    for (const family of Object.keys(WebFonts)) {
-      const config = WebFonts[family as keyof typeof WebFonts];
-      const face = new FontFace(family, `url(${config.url})`, { weight: '400' });
-      face.load().then((f) => document.fonts.add(f)).catch(() => { });
-    }
-  });
 
   const [localFonts, { refetch }] = createResource(fontsPermission, async (state) => {
     if (state !== 'granted') return [];
