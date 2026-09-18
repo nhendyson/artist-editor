@@ -268,6 +268,35 @@ export function Assets() {
   const hasContent = () => hasAssets() || allPartials().length > 0 || allFolders().length > 0;
   const isFiltering = () => query().trim().length > 0 || assetFilter() !== "ALL";
   const isEmptyView = () => visibleFolders().length === 0 && filteredPartials().length === 0 && filteredAssets().length === 0;
+  const audioCount = () => allAssets().filter((asset) => asset.type === "AUDIO").length;
+  const transcriptCount = () => allAssets().filter((asset) => asset.type === "TRANSCRIPT").length;
+  const videoCount = () => allAssets().filter((asset) => asset.type === "VIDEO").length;
+  const canCreateTiming = () => audioCount() > 0 && transcriptCount() > 0;
+  const canCreateDrafts = () => canCreateTiming() && videoCount() >= 3;
+
+  const openArtistTiming = () => {
+    if (!audioCount()) {
+      toast("Add the master song first", { description: "Import the exact local WAV or audio file you want your lyric timing tied to." });
+      return;
+    }
+    if (!transcriptCount()) {
+      toast("Add timed lyrics next", { description: "Import a local .srt, .vtt, or timed transcript JSON. No cloud transcription is used." });
+      return;
+    }
+    setArtistTimingOpen(true);
+  };
+
+  const openArtistDrafts = () => {
+    if (!canCreateTiming()) {
+      openArtistTiming();
+      return;
+    }
+    if (videoCount() < 3) {
+      toast("Add three clip variations", { description: `You have ${videoCount()}. Import ${3 - videoCount()} more video ${3 - videoCount() === 1 ? "clip" : "clips"}, then make the reusable timing.` });
+      return;
+    }
+    setArtistDraftsOpen(true);
+  };
 
   const handleCreateFolder = () => withLibrary((lib) => {
     const parent = currentFolder();
@@ -332,16 +361,12 @@ export function Assets() {
           </span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
-          <Show when={allAssets().some((asset) => asset.type === "AUDIO") && allAssets().some((asset) => asset.type === "TRANSCRIPT")}>
-            <Button size="small" variant="ghost" onClick={() => setArtistTimingOpen(true)}>
-              Song timing
-            </Button>
-          </Show>
-          <Show when={allAssets().some((asset) => asset.type === "TRANSCRIPT") && allAssets().filter((asset) => asset.type === "VIDEO").length >= 3}>
-            <Button size="small" variant="outline" onClick={() => setArtistDraftsOpen(true)}>
-              Artist drafts
-            </Button>
-          </Show>
+          <Button size="small" variant="ghost" onClick={openArtistTiming}>
+            Song timing
+          </Button>
+          <Button size="small" variant="outline" onClick={openArtistDrafts}>
+            Artist drafts
+          </Button>
           <Show when={hasAssets()}>
             <DropdownMenu placement="bottom-start">
               <Tooltip>
@@ -497,6 +522,22 @@ export function Assets() {
               </div>
             )}
           </Show>
+        </div>
+      </Show>
+
+      <Show when={currentFolder() === "" && !isFiltering()}>
+        <div class="mx-4 mt-3 rounded-lg border border-border bg-accent/20 px-3 py-3 text-xs">
+          <p class="font-500 text-foreground">Artist lyric workflow</p>
+          <p class="mt-1 text-xxs text-muted-foreground">Time one exact song once, then reuse that section across three editable clips.</p>
+          <div class="mt-3 grid gap-1.5 text-xxs text-muted-foreground">
+            <p><span class={audioCount() ? "text-success" : "text-muted-foreground"}>{audioCount() ? "✓" : "○"}</span> Master song: {audioCount() ? "ready" : "import audio"}</p>
+            <p><span class={transcriptCount() ? "text-success" : "text-muted-foreground"}>{transcriptCount() ? "✓" : "○"}</span> Timed lyrics: {transcriptCount() ? "ready" : "import .srt, .vtt, or timed JSON"}</p>
+            <p><span class={videoCount() >= 3 ? "text-success" : "text-muted-foreground"}>{videoCount() >= 3 ? "✓" : "○"}</span> Clip variations: {videoCount()}/3</p>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <Button size="small" variant={canCreateTiming() ? "default" : "secondary"} onClick={openArtistTiming}>Song timing</Button>
+            <Button size="small" variant={canCreateDrafts() ? "default" : "secondary"} onClick={openArtistDrafts}>Make 3 drafts</Button>
+          </div>
         </div>
       </Show>
 
