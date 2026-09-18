@@ -405,9 +405,13 @@ if (app.requestSingleInstanceLock()) {
     }
 
     setupAppMenu();
-    session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(true));
-    session.defaultSession.setPermissionCheckHandler(() => true);
-    session.defaultSession.setDevicePermissionHandler(() => true);
+    // The editor needs local-font access for its offline font picker. Every
+    // other Chromium permission, including camera, microphone, geolocation,
+    // device, and local-network access, is denied by default.
+    const isLocalFontPermission = (permission: string) => permission === "local-fonts";
+    session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => callback(isLocalFontPermission(permission)));
+    session.defaultSession.setPermissionCheckHandler((_wc, permission) => isLocalFontPermission(permission));
+    session.defaultSession.setDevicePermissionHandler(() => false);
 
     const url = findProtocolUrl(process.argv);
     if (url) deliverDeepLink(url);
