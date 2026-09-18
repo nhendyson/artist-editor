@@ -20,6 +20,8 @@ import { AssetThumbnail } from "../ui/asset-thumbnail";
 import { formatAssetDuration } from "@/utils";
 import { useLibrary } from "@/engine/library";
 import { ASSET_DRAG_TYPE } from "./folder-item";
+import { mainBridge } from "@/lib/ipc";
+import { MAIN_CHANNELS } from "@desktop/main-channels";
 
 import type { Asset } from "@diffusionstudio/assets";
 
@@ -28,6 +30,8 @@ export type LazyAssetItemProps = {
   selected: boolean;
   onSelect(): void;
 };
+
+const LOCAL_WHISPER_MODEL_KEY = "artist-editor.local-whisper-model-path";
 
 /**
  * A lazy loaded asset item. Clears the buffer when not visible.
@@ -101,6 +105,34 @@ export function LazyAssetItem(props: LazyAssetItemProps) {
   const handleSaveAs = () => saveAssetAs(props.asset);
   const handleInsertToTimeline = () => insertAssetAtPlayhead(world, props.asset);
 
+  const handleTranscribeLocally = async () => {
+    if (props.asset.type !== "AUDIO") return;
+    const lib = library();
+    if (!lib) return;
+    try {
+      const inputPath = lib.fs.pathOf?.(await lib.file(props.asset));
+      if (!inputPath) throw new Error("This audio asset does not have a local file path.");
+      let modelPath = window.localStorage.getItem(LOCAL_WHISPER_MODEL_KEY);
+      if (!modelPath) {
+        toast("Choose your local Whisper model", { description: "This is a one-time setup. The model stays on your Mac and is never uploaded." });
+        modelPath = await mainBridge.call(MAIN_CHANNELS.LOCAL_TRANSCRIPTION_PICK_MODEL, undefined);
+        if (!modelPath) return;
+        window.localStorage.setItem(LOCAL_WHISPER_MODEL_KEY, modelPath);
+      }
+      toast("Transcribing locally…", { description: "Whisper is running on this Mac. Review the timing before saving it as reusable song timing." });
+      const { srt } = await mainBridge.call(MAIN_CHANNELS.LOCAL_TRANSCRIBE, { inputPath, modelPath });
+      const stem = name().replace(/\.[^.]+$/, "") || "lyrics";
+      await lib.store(new Blob([srt], { type: "application/x-subrip" }), {
+        name: `${stem}-local-${Date.now()}.srt`,
+        folder: "artist-editor/transcripts",
+      });
+      toast.success("Local timed lyrics added", { description: "Open Song timing, review the lyric boundaries, then save the reusable timing revision." });
+    } catch (error) {
+      window.localStorage.removeItem(LOCAL_WHISPER_MODEL_KEY);
+      toast.error("Could not transcribe locally", { description: error instanceof Error ? error.message : String(error) });
+    }
+  };
+
   return (
     <ContextMenu>
       <ContextMenuTrigger
@@ -157,6 +189,11 @@ export function LazyAssetItem(props: LazyAssetItemProps) {
           <ContextMenuItem onSelect={handleInsertToTimeline}>
             Insert at playhead
           </ContextMenuItem>
+          <Show when={props.asset.type === "AUDIO"}>
+            <ContextMenuItem onSelect={() => void handleTranscribeLocally()}>
+              Transcribe locally
+            </ContextMenuItem>
+          </Show>
           <ContextMenuSeparator />
           <ContextMenuItem onSelect={() => setIsRenaming(true)}>
             Rename

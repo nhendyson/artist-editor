@@ -39,6 +39,8 @@ export const MAIN_CHANNELS = {
   FILE_WRITE_CHUNK: "file:write-chunk",
   FILE_WRITE_CLOSE: "file:write-close",
   FILE_WRITE_ABORT: "file:write-abort",
+  LOCAL_TRANSCRIPTION_PICK_MODEL: "local-transcription:pick-model",
+  LOCAL_TRANSCRIBE: "local-transcription:transcribe",
   LOGS_GET: "logs:get",
   PROJECTS_PICK_ROOT: "projects:pick-root",
   PROJECTS_PICK_FOLDER: "projects:pick-folder",
@@ -202,6 +204,14 @@ export type MainRequestMap = {
   [MAIN_CHANNELS.FILE_WRITE_ABORT]: {
     request: { id: string };
     response: void;
+  };
+  [MAIN_CHANNELS.LOCAL_TRANSCRIPTION_PICK_MODEL]: {
+    request: void;
+    response: string | null;
+  };
+  [MAIN_CHANNELS.LOCAL_TRANSCRIBE]: {
+    request: { inputPath: string; modelPath: string };
+    response: { srt: string };
   };
   // Reveals a file or folder in the OS file manager (Finder on macOS).
   [MAIN_CHANNELS.APP_SHOW_IN_FOLDER]: {

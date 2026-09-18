@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { app, BrowserWindow, nativeImage, session, shell } from "electron";
+import { app, BrowserWindow, dialog, nativeImage, session, shell } from "electron";
+import type { OpenDialogOptions } from "electron";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { open, rename, unlink } from "node:fs/promises";
@@ -11,6 +12,7 @@ import type { FileHandle } from "node:fs/promises";
 import { updateElectronApp } from "update-electron-app";
 import { tempPathFor } from "./atomic";
 import { prepareManagedWrite } from "./managed-write";
+import { transcribeLocalAudio } from "./local-transcription";
 import { DapiServer } from "./dapi/server";
 import { agentChatEndpoint, deleteProjectChats, startAgentChat, stopAgentChat } from "./agent-chat";
 import { cliStatus, installCli, uninstallCli } from "./cli-install";
@@ -336,6 +338,20 @@ if (app.requestSingleInstanceLock()) {
   mainBridge.handle(MAIN_CHANNELS.FILE_TRANSFER, ({ selector, absolutePath }) =>
     setFileInputFiles(selector, absolutePath),
   );
+  mainBridge.handle(MAIN_CHANNELS.LOCAL_TRANSCRIPTION_PICK_MODEL, async () => {
+    const options: OpenDialogOptions = {
+      title: 'Choose a local Whisper model',
+      properties: ['openFile'],
+      filters: [{ name: 'Whisper model', extensions: ['bin'] }],
+    };
+    const result = mainWindow && !mainWindow.isDestroyed()
+      ? await dialog.showOpenDialog(mainWindow, options)
+      : await dialog.showOpenDialog(options);
+    return result.canceled ? null : (result.filePaths[0] ?? null);
+  });
+  mainBridge.handle(MAIN_CHANNELS.LOCAL_TRANSCRIBE, async ({ inputPath, modelPath }) => ({
+    srt: await transcribeLocalAudio({ inputPath, modelPath }),
+  }));
 
   mainBridge.handle(MAIN_CHANNELS.FILE_WRITE_OPEN, async ({ root, path, exclusive }) => {
     const managedPath = await prepareManagedWrite(root, path);

@@ -24,6 +24,11 @@ recording and reuse a section on several one-shot drafts without losing manual w
   transcript and the local master recording. It hashes the full master file,
   creates an approved revision only after an explicit review check, and writes
   it to the project library for reuse.
+- An imported audio asset exposes **Transcribe locally**. It runs the fixed
+  on-device `whisper-cli` runner against a user-selected local Whisper model,
+  returns a local `.srt` asset, and never downloads a model or falls back to a
+  hosted transcription provider. The first use asks for a local model file;
+  its path is stored only in this app's local preferences.
 - A timing made from a verse-only subtitle file defines that verse's actual
   cue span, so its reusable master-audio range does not expand to the full song.
 - Caption text, times, crop, and local style survive undo, save, and reopen.
@@ -36,6 +41,9 @@ recording and reuse a section on several one-shot drafts without losing manual w
   profile. Codex context sharing is a separately scoped exception.
 - Originals are immutable. Exports are versioned and never overwrite a source.
 - Unknown lyrics and missing word times stay unknown; they are never invented.
+- A local transcription is a draft: it must be reviewed before it can become
+  reusable song timing. The runner is a fixed executable with fixed arguments,
+  writes only a temporary output, and cannot be used as a general shell.
 - Source timing remains in integer samples. The initial slice supports 1x playback.
 
 ## Edges
