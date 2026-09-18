@@ -173,6 +173,10 @@ export function timingForSection(timing: SongTiming, sectionId: string): Section
 export function songTimingToTranscript(timing: SongTiming, options: TimingTranscriptOptions = {}): Transcript {
 	validateSongTiming(timing);
 	const sampleRate = timing.recording.sampleRate;
+	const sectionOffset = options.sectionId
+		? timing.sections.find((section) => section.id === options.sectionId)?.startSample
+		: undefined;
+	if (options.sectionId && sectionOffset === undefined) throw new Error(`Unknown section: ${options.sectionId}`);
 	const items = options.sectionId ? timingForSection(timing, options.sectionId) : timing.items.map((item) => ({
 		...item,
 		sourceRange: { ...displayRangeOf(item) },
@@ -181,7 +185,11 @@ export function songTimingToTranscript(timing: SongTiming, options: TimingTransc
 
 	return items.flatMap((item) => {
 		if ('kind' in item || !item.text) return [];
-		const display = item.sectionRange;
+		const sourceRange = item.sectionRange;
+		const display = {
+			startSample: sourceRange.startSample - (sectionOffset ?? 0),
+			endSample: sourceRange.endSample - (sectionOffset ?? 0),
+		};
 		const words = transcriptWords(item, display, sampleRate);
 		return [{
 			text: item.text,

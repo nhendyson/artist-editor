@@ -67,4 +67,9 @@ describe('song timing', () => {
 		});
 		expect(transcript[0]?.words.at(-1)?.end).toBe(3);
 	});
+
+	it('rebases a selected section so it starts at zero in a new draft', () => {
+		const transcript = songTimingToTranscript(timing(), { sectionId: 'verse-1' });
+		expect(transcript[0]).toMatchObject({ start: 0, end: 1.5 });
+	});
 });
