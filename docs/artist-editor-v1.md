@@ -20,6 +20,10 @@ recording and reuse a section on several one-shot drafts without losing manual w
   section transcript, a muted camera track, and the selected master-song range.
 - The action refuses a master-audio source that differs from the recording path
   pinned by the timing revision; it never substitutes a similarly named mix.
+- The local **Song timing** action accepts only a local timed subtitle or
+  transcript and the local master recording. It hashes the full master file,
+  creates an approved revision only after an explicit review check, and writes
+  it to the project library for reuse.
 - Caption text, times, crop, and local style survive undo, save, and reopen.
 - Paused hover skimming previews without seeking or creating history. Click seeks.
 

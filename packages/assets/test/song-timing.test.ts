@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { songTimingToTranscript, timingForSection, validateSongTiming, type SongTiming } from '../src/song-timing';
+import { createSongTimingFromTranscript, songTimingToTranscript, timingForSection, validateSongTiming, type SongTiming } from '../src/song-timing';
 import { loadSongTiming, saveSongTiming, songTimingPath } from '../src/song-timing-store';
 
 const timing = (): SongTiming => ({
@@ -71,5 +71,27 @@ describe('song timing', () => {
 	it('rebases a selected section so it starts at zero in a new draft', () => {
 		const transcript = songTimingToTranscript(timing(), { sectionId: 'verse-1' });
 		expect(transcript[0]).toMatchObject({ start: 0, end: 1.5 });
+	});
+
+	it('makes a review-gated reusable timing revision from local subtitle cues', () => {
+		const imported = createSongTimingFromTranscript({
+			id: 'imported-v1',
+			recording: timing().recording,
+			sectionLabel: 'Verse 1',
+			approved: true,
+			transcript: [{
+				text: 'hold this line',
+				start: 1,
+				end: 3,
+				words: [
+					{ text: 'hold', start: 1, end: 1.5 },
+					{ text: 'this', start: 1.5, end: 2 },
+					{ text: 'line', start: 2, end: 3 },
+				],
+			}],
+		});
+		expect(imported.approved).toBe(true);
+		expect(imported.sections[0]?.label).toBe('Verse 1');
+		expect(songTimingToTranscript(imported)[0]).toMatchObject({ text: 'hold this line', start: 1, end: 3 });
 	});
 });

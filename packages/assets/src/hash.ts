@@ -15,6 +15,11 @@ const SAMPLE_BYTES = 1024 * 1024;
 
 export const ID_LENGTH = 16;
 
+/** Full SHA-256 identity for a recording that must never be silently swapped. */
+export async function sha256Blob(blob: Blob): Promise<string> {
+	return hexOf(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()));
+}
+
 /** The content id of `blob`. */
 export async function hashBlob(blob: Blob): Promise<string> {
 	const size = blob.size;

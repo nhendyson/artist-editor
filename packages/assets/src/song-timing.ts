@@ -59,6 +59,15 @@ export type SongTiming = {
 	sections: SongSection[];
 };
 
+export type CreateSongTimingFromTranscriptInput = {
+	id: string;
+	recording: RecordingIdentity;
+	transcript: Transcript;
+	sectionLabel: string;
+	/** A user must explicitly confirm that imported timing was reviewed. */
+	approved: boolean;
+};
+
 export type SectionTimingItem = TimingItem & {
 	/** Original display range in the recording. */
 	sourceRange: SampleRange;
@@ -206,6 +215,53 @@ export function isSongTiming(value: unknown): value is SongTiming {
 		&& (value as { schemaVersion?: unknown }).schemaVersion === SONG_TIMING_SCHEMA_VERSION
 		&& Array.isArray((value as { items?: unknown }).items)
 		&& !!(value as { recording?: unknown }).recording;
+}
+
+/**
+ * Turns a local, timed subtitle/transcript into a reviewable timing revision.
+ * Cue boundaries remain display boundaries so lyric lines persist through the
+ * intended gap rather than becoming word-by-word captions.
+ */
+export function createSongTimingFromTranscript(input: CreateSongTimingFromTranscriptInput): SongTiming {
+	const { recording, transcript } = input;
+	const toSamples = (seconds: number) => Math.round(seconds * recording.sampleRate);
+	const items: LyricCue[] = transcript.map((segment, index) => {
+		const first = segment.words[0];
+		const last = segment.words.at(-1);
+		const start = segment.start ?? first?.start;
+		const end = segment.end ?? last?.end;
+		if (!segment.text.trim() || start === undefined || end === undefined || end <= start) {
+			throw new Error(`Transcript line ${index + 1} needs non-empty text and a visible time range.`);
+		}
+		return {
+			id: `line-${index + 1}`,
+			text: segment.text.trim(),
+			vocal: { startSample: toSamples(start), endSample: toSamples(end) },
+			display: { startSample: toSamples(start), endSample: toSamples(end) },
+			words: segment.words.length ? segment.words.map((word, wordIndex) => ({
+				id: `line-${index + 1}-word-${wordIndex + 1}`,
+				text: word.text,
+				startSample: toSamples(word.start),
+				endSample: toSamples(word.end),
+				provenance: 'imported' as const,
+				approved: input.approved,
+			})) : undefined,
+		};
+	});
+	return validateSongTiming({
+		schemaVersion: SONG_TIMING_SCHEMA_VERSION,
+		id: input.id,
+		recording,
+		approved: input.approved,
+		items,
+		sections: [{
+			id: 'full-track',
+			label: input.sectionLabel.trim() || 'Full track',
+			startSample: 0,
+			endSample: recording.durationSamples,
+			boundaryPolicy: 'include-active-line',
+		}],
+	});
 }
 
 function transcriptWords(item: LyricCue, display: SampleRange, sampleRate: number): TranscriptWord[] {
