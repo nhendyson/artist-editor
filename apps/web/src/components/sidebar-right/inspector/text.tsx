@@ -299,6 +299,11 @@ export function FontDropdown(props: FontDropdownProps) {
 
   // Report available weights whenever the family changes
   const allFonts = createMemo(() => [...webfonts(), ...(localFonts.latest ?? [])]);
+  const requestedFontMissing = createMemo(() =>
+    fontsPermission() === 'granted'
+    && localFonts.latest !== undefined
+    && !allFonts().some((font) => font.family === props.family),
+  );
 
   createEffect(() => {
     const match = allFonts().find(f => f.family === props.family);
@@ -350,6 +355,9 @@ export function FontDropdown(props: FontDropdownProps) {
         )}
       >
         {props.family}
+        <Show when={requestedFontMissing()}>
+          <span class="text-[10px] text-destructive">Missing</span>
+        </Show>
         <Icon name="chevron-down" class="size-6 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuPortal>
