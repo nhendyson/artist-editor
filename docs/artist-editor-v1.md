@@ -14,6 +14,12 @@ recording and reuse a section on several one-shot drafts without losing manual w
 - Each draft has one semantic Lyrics caption entity, local local-font styling, and
   a pinned timing revision.
 - A single section can create three one-shot drafts. Camera audio stays muted.
+- The Assets panel's **Artist drafts** action selects one approved timing file,
+  its exact local master recording, one named section, and three video assets.
+  It writes three ordinary 9:16 scenes, each with the same project-local
+  section transcript, a muted camera track, and the selected master-song range.
+- The action refuses a master-audio source that differs from the recording path
+  pinned by the timing revision; it never substitutes a similarly named mix.
 - Caption text, times, crop, and local style survive undo, save, and reopen.
 - Paused hover skimming previews without seeking or creating history. Click seeks.
 

@@ -39,6 +39,8 @@ export interface NewSceneOptions {
 	focus?: (rect: Rect) => void;
 	/** Where on the timeline the assets start, in seconds; the playhead by default. */
 	start?: number;
+	/** Top-left canvas position for a new scene; centered at the origin by default. */
+	position?: { x: number; y: number };
 }
 
 /**
@@ -51,7 +53,11 @@ export function createScene(world: World, format: Size, options: NewSceneOptions
 	if (!root.get(Source)?.value) return null;
 
 	const editor = getDocumentEditor(world);
-	const rect: Rect = { x: Math.round(-format.width / 2), y: Math.round(-format.height / 2), ...format };
+	const rect: Rect = {
+		x: Math.round(options.position?.x ?? -format.width / 2),
+		y: Math.round(options.position?.y ?? -format.height / 2),
+		...format,
+	};
 	const name = options.name ?? getNextName(world, 'Scene');
 
 	// The camera moves first, so the scene is in view the moment it exists.

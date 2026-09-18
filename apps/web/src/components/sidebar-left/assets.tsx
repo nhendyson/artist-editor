@@ -27,6 +27,7 @@ import {
   BreadcrumbsSeparator,
 } from "../ui/breadcrumbs";
 import { LazyAssetItem } from "./asset-item";
+import { ArtistDraftsDialog } from "./artist-drafts-dialog";
 import { PartialAssetItem } from "./partial-asset-item";
 import { FolderItem, handleFolderDrop, isAssetOrFolderDrag, ASSET_DRAG_TYPE, FOLDER_DRAG_TYPE } from "./folder-item";
 import { useLibrary } from "@/engine/library";
@@ -55,6 +56,7 @@ export function Assets() {
   const [isDragging, setIsDragging] = createSignal(false);
   const [renamingFolder, setRenamingFolder] = createSignal<string | null>(null);
   const [currentFolder, setCurrentFolder] = createSignal("");
+  const [artistDraftsOpen, setArtistDraftsOpen] = createSignal(false);
 
   const allAssets = createMemo(() => library()?.list().filter((asset) => asset.type !== "SCRIPT") ?? []);
   const allPartials = createMemo(() => library()?.partials() ?? []);
@@ -328,6 +330,11 @@ export function Assets() {
           </span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
+          <Show when={allAssets().some((asset) => asset.type === "TRANSCRIPT") && allAssets().filter((asset) => asset.type === "VIDEO").length >= 3}>
+            <Button size="small" variant="outline" onClick={() => setArtistDraftsOpen(true)}>
+              Artist drafts
+            </Button>
+          </Show>
           <Show when={hasAssets()}>
             <DropdownMenu placement="bottom-start">
               <Tooltip>
@@ -410,6 +417,8 @@ export function Assets() {
           </DropdownMenu>
         </div>
       </div>
+
+      <ArtistDraftsDialog open={artistDraftsOpen()} onOpenChange={setArtistDraftsOpen} />
 
       <Show when={hasContent() && !isDragging()}>
         <div class="shrink-0 px-4 pt-4 pb-1 flex flex-col gap-4">
