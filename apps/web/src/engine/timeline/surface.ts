@@ -48,6 +48,12 @@ export type TimelineSurfaceState = {
 	marquee: Marquee | null;
 	/** Where the edge being dragged snapped this frame, in timeline pixels. */
 	snapX: number | null;
+	/** Hover scrubbing is a temporary preview, enabled for artist projects by default. */
+	skimming: boolean;
+	/** Frame currently previewed under the pointer; null outside the timeline. */
+	skimFrame: number | null;
+	/** Playhead frame to restore when the pointer leaves without committing. */
+	skimStartFrame: number | null;
 	colors: typeof COLORS;
 };
 
@@ -61,6 +67,9 @@ export function createTimelineSurface(): TimelineSurfaceState {
 		minimized: false,
 		marquee: null,
 		snapX: null,
+		skimming: true,
+		skimFrame: null,
+		skimStartFrame: null,
 		colors: COLORS,
 	};
 }

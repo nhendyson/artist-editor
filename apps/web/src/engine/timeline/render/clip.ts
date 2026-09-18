@@ -270,6 +270,7 @@ function handleBody(
 
 
 const CAPTION_PRESETS: Record<CaptionType, string> = {
+	[CaptionType.ARTIST]: 'Artist Lines',
 	[CaptionType.CLASSIC]: 'Classic',
 	[CaptionType.CASCADE]: 'Cascade',
 	[CaptionType.SPOTLIGHT]: 'Spotlight',

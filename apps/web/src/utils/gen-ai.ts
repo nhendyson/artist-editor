@@ -2,13 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { getAssetSpec, isAssetRef, isTransformSpec, isTransformType, parseSource } from "@diffusionstudio/jsx";
+import { getAssetSpec, isAssetRef, isTransformSpec, isTransformType } from "@diffusionstudio/jsx";
 import {
-  Ai, AssetId, Audio, GenAi, getAssetFile, getEntityTree, Hidden, Muted,
-  Paint, PaintType, Project, Source,
+  Ai, GenAi, getAssetFile, Project,
 } from "@diffusionstudio/runtime";
-import { createEncoder } from "@diffusionstudio/encoder";
-import { createCapture } from "@/engine/capture";
 import { assetName, GENERATED_DIR, isPartialAsset } from "@diffusionstudio/assets";
 import {
   PROMPT_INPUT_AUDIO_MODEL_OPTIONS,
@@ -26,7 +23,6 @@ import { toast } from "somoto";
 import type { AspectRatio, AssetInput, AssetRef, AssetSpecInput, GenerateSpec, TransformType } from "@diffusionstudio/jsx";
 import type { Asset, AssetLibrary, AssetType, PartialAsset, ReserveOptions } from "@diffusionstudio/assets";
 import type { FileRef } from "@diffusionstudio/api-contract";
-import type { ExportResult } from "@diffusionstudio/encoder";
 import type { Entity, World } from "koota";
 
 /** What a failed generation is called where the user reads about it. */
@@ -82,7 +78,8 @@ class ReportedError extends Error {}
 
 /** Creates the project's GenAi over `library` and attaches it as the world's Ai. */
 export function attachAi(world: World, library: AssetLibrary, dir?: string): EditorGenAi {
-  const ai = new EditorGenAi(library, world.get(Project)?.id ?? "project", dir);
+  void dir;
+  const ai = new EditorGenAi(library, world.get(Project)?.id ?? "project");
   world.set(Ai, ai);
   return ai;
 }
@@ -91,8 +88,6 @@ export class EditorGenAi extends GenAi {
   private readonly library: AssetLibrary;
   /** Prefixes upload keys, so referenced assets land project-unique in the bucket. */
   private readonly projectId: string;
-  /** The project's folder, so a transcription's capture compiles the sources as they are now. */
-  private readonly dir?: string;
 
   /**
    * Declarations already resolved, keyed by ref identity — a ref consumed by
@@ -104,11 +99,10 @@ export class EditorGenAi extends GenAi {
   /** Runs in flight, keyed by generation key. */
   private readonly inflight = new Map<string, Promise<Asset>>();
 
-  public constructor(library: AssetLibrary, projectId: string, dir?: string) {
+  public constructor(library: AssetLibrary, projectId: string) {
     super();
     this.library = library;
     this.projectId = projectId;
-    this.dir = dir;
   }
 
   /** Identical concurrent declarations collapse to one request. */
@@ -131,12 +125,10 @@ export class EditorGenAi extends GenAi {
    * scene again.
    */
   public transcribe(world: World, scene: Entity, seed: number): Promise<Asset> {
-    const key = transcriptKey(scene, seed);
-    return this.generated(
-      key,
-      () => ({ type: "TRANSCRIPT", name: `${this.nextCaptionsName()}.json`, title: FAILURE_TITLES.transcript }),
-      (partial) => this.runTranscription(world, scene, key, partial),
-    );
+    void world;
+    void scene;
+    void seed;
+    return Promise.reject(new Error('Cloud transcription is disabled in Artist Editor. Import a local transcript or an approved song-timing revision instead.'));
   }
 
   /**
@@ -305,55 +297,6 @@ export class EditorGenAi extends GenAi {
       });
       throw err;
     }
-  }
-
-  /** Encodes the scene's audio, transcribes it, and stores the transcript in place of `partial`. */
-  private async runTranscription(world: World, scene: Entity, key: string, partial: PartialAsset): Promise<Asset> {
-    assert(sceneHasAudio(world, scene), "No audio found. Add an audio or video clip to the scene to generate captions.");
-
-    // The scene's own capture world: the project rendered again, reduced to
-    // this scene, with nothing drawn — see `createCapture`.
-    const capture = await createCapture(world, scene, { mode: "offline-audio", dir: this.dir });
-    let result: ExportResult;
-    try {
-      const encoder = await createEncoder(capture.world, {
-        format: "ogg",
-        video: { enabled: false },
-        audio: { enabled: true, codec: "opus", sampleRate: 24000 },
-      });
-      result = await encoder.render();
-    } finally {
-      capture.dispose();
-    }
-    assert(result.type === "success" && result.data !== undefined, "Failed to encode the scene audio");
-
-    const uploadId = crypto.randomUUID();
-    const audioFile = new File([result.data], `${uploadId}.ogg`, { type: "audio/ogg" });
-    const fileRef = await uploadBlob(audioFile, uploadId);
-    assert(fileRef, "Failed to upload the scene audio for transcription");
-
-    const { results: transcript } = await trpc.transcribe.mutate({ audio: fileRef });
-    assert(
-      transcript.length > 0 && transcript.some((segment) => segment.words.length > 0),
-      "No speech detected. The audio does not appear to contain recognizable speech.",
-    );
-
-    const blob = new Blob([JSON.stringify(transcript)], { type: "application/json" });
-    return this.library.store(blob, {
-      name: assetName(partial),
-      folder: GENERATED_DIR,
-      generation: { key },
-    });
-  }
-
-  /** The next free `Captions N`, counting the takes still in flight. */
-  private nextCaptionsName(): string {
-    let max = 0;
-    for (const entry of [...this.library.list(), ...this.library.partials()]) {
-      const match = assetName(entry).match(/^Captions (\d+)\.json$/);
-      if (match) max = Math.max(max, Number(match[1]));
-    }
-    return `Captions ${max + 1}`;
   }
 
   /**
@@ -558,31 +501,6 @@ function reportFailure(error: unknown, title: string): ReportedError {
   });
 
   return new ReportedError(message);
-}
-
-/**
- * The transcript cache key: scene id + seed. The scene's durable name is the
- * id in its source stamp (`<file>:<id>`, stamped once by the compiler — the
- * same identity the project config keys by); a scene without one falls back
- * to its entity id, which only holds within the session.
- */
-function transcriptKey(scene: Entity, seed: number): string {
-  const source = scene.get(Source)?.value;
-  const locator = source ? parseSource(source)?.locator : undefined;
-  const sceneId = typeof locator === "string" ? locator : source ?? String(scene.id());
-  return `transcript:v1:${sceneId}:${seed}`;
-}
-
-/**
- * Whether anything in the scene contributes to its audible mix: an unmuted,
- * unhidden audio clip, video, or video paint with its asset bound.
- */
-function sceneHasAudio(world: World, scene: Entity): boolean {
-  for (const entity of getEntityTree(world, scene)) {
-    if (entity.has(Hidden) || entity.has(Muted) || !entity.has(AssetId)) continue;
-    if (entity.has(Audio) || entity.get(Paint)?.value === PaintType.VIDEO) return true;
-  }
-  return false;
 }
 
 /**

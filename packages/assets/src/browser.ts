@@ -11,6 +11,16 @@ import { assetName } from './types';
 import type { AssetLibrary, ImportResult } from './library';
 import type { Asset } from './types';
 
+type SaveFilePickerWindow = Window & {
+	showSaveFilePicker(options?: {
+		suggestedName?: string;
+		types?: Array<{
+			description?: string;
+			accept: Record<`${string}/${string}`, `.${string}`[]>;
+		}>;
+	}): Promise<FileSystemFileHandle>;
+};
+
 /** Opens the file picker; resolves to what was picked ([] on cancel). */
 export function pickFiles(options: { multiple?: boolean; accept?: string } = {}): Promise<File[]> {
 	return new Promise((resolve) => {
@@ -62,7 +72,7 @@ export async function saveAssetAs(asset: Pick<Asset, 'handle' | 'mimeType' | 'pa
 
 	let target: FileSystemFileHandle;
 	try {
-		target = await window.showSaveFilePicker({
+		target = await (window as unknown as SaveFilePickerWindow).showSaveFilePicker({
 			suggestedName,
 			...(extension && asset.mimeType.includes('/')
 				? { types: [{ description: asset.mimeType, accept: { [asset.mimeType]: [extension] } as Record<`${string}/${string}`, `.${string}`[]> }] }

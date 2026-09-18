@@ -26,6 +26,7 @@ export type CaptionPresetOption = {
 
 /** The presets, in the order the select lists them. */
 export const CAPTION_PRESET_OPTIONS: CaptionPresetOption[] = [
+	{ name: "artist", label: "Artist Lines", slots: [] },
   { name: "classic", label: "Classic", slots: [] },
   { name: "cascade", label: "Cascade", slots: [] },
   {

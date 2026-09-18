@@ -157,8 +157,9 @@ export enum CaptionType {
   SPOTLIGHT,
   WHISPER,
   PAPER,
-  GUINEA,
-  STARK,
+	GUINEA,
+	STARK,
+	ARTIST,
 }
 
 export enum CaptionAlign {

@@ -65,7 +65,7 @@ type UserInputRequest = {
 const errorText = (error: { message?: string } | string | null | undefined): string | undefined =>
   typeof error === "string" ? error : error?.message;
 
-/** How the policy is spelled on every call: full access, or the sandbox when an admin said no (§5.4). */
+/** How the policy is spelled on every call: project workspace by default. */
 type Policy = { full: boolean };
 
 function threadIdOf(result: unknown): string | null {
@@ -419,7 +419,9 @@ function safeStringify(value: unknown): string {
 export class CodexHarness implements Harness {
   readonly id = "codex" as const;
   private readonly version: string;
-  private readonly policy: Policy = { full: true };
+  // The in-editor assistant can work on the open project, but it never gets
+  // blanket access to the rest of the user's files by default.
+  private readonly policy: Policy = { full: false };
 
   constructor(version = "0.0.0") {
     this.version = version;

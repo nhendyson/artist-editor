@@ -273,6 +273,7 @@ export const CAPTION_PRESETS: Record<string, CaptionType> = {
 	paper: CaptionType.PAPER,
 	guinea: CaptionType.GUINEA,
 	stark: CaptionType.STARK,
+	artist: CaptionType.ARTIST,
 };
 
 export const CAPTION_ALIGNS: Record<string, CaptionAlign> = {

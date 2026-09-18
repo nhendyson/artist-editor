@@ -8,39 +8,16 @@
 
 import { WebFonts } from './fixtures';
 import { FontStyle } from '../constants';
-import { Fonts } from '../traits';
 
 import type { World } from 'koota';
 import type * as types from './types';
 
-const STYLE_MAP = {
-	[FontStyle.NORMAL]: 'normal',
-	[FontStyle.ITALIC]: 'italic',
-	[FontStyle.OBLIQUE]: 'oblique',
-} as const;
-
-/** The environment's FontFaceSet: document.fonts on a page, self.fonts in a worker. */
-function getFontFaceSet(): FontFaceSet | null {
-	const scope = globalThis as { document?: { fonts?: FontFaceSet }; fonts?: FontFaceSet };
-	return scope.document?.fonts ?? scope.fonts ?? null;
-}
-
 /**
- * Get common web fonts
+ * Artist Editor never advertises or fetches hosted fonts. The desktop font
+ * picker exposes installed fonts through the host's local-font permission.
  */
 export function getWebFonts(): types.FontSources[] {
-	return Object.keys(WebFonts).map((family) => {
-		return {
-			family,
-			variants: WebFonts[family as keyof typeof WebFonts].weights.map((weight) => {
-				return {
-					family,
-					source: `url(${WebFonts[family as keyof typeof WebFonts].url})`,
-					weight: weight,
-				};
-			}),
-		};
-	});
+	return [];
 }
 
 export async function loadWebFont(
@@ -49,49 +26,13 @@ export async function loadWebFont(
 	style: FontStyle = FontStyle.NORMAL,
 	weight?: string,
 ): Promise<types.FontSource> {
-	const source = `url(${WebFonts[family].url})`;
-	const font: types.FontSource = {
-		source,
+	void world;
+	return {
+		// A FontFace `local()` source is descriptive only here: the browser uses
+		// its ordinary local fallback if the requested face is unavailable.
+		source: `local(${JSON.stringify(family)})`,
 		family,
 		weight,
 		style,
 	};
-
-	const fonts = world.get(Fonts)?.list;
-	// No FontFace = headless environment without font rasterization; text
-	// measurement falls back to the system font.
-	if (!fonts || typeof FontFace === 'undefined') return font;
-
-	// Already loaded
-	if (fonts.some((f) => f.source === font.source && f.weight === font.weight)) {
-		return font;
-	}
-
-	fonts.push(font);
-
-	// Load all weights if no weight is specified
-	if (!weight) {
-		const config = WebFonts[family as keyof typeof WebFonts];
-		const weights = config.weights;
-		weight = weights.length > 1 ? `${weights[0]} ${weights[weights.length - 1]}` : weights[0];
-	}
-
-	const fontFace = new FontFace(family, source, { weight, style: STYLE_MAP[style] });
-
-	await new Promise((resolve, reject) => {
-		fontFace
-			.load()
-			.then((loaded) => {
-				getFontFaceSet()?.add(loaded);
-				resolve(null);
-			})
-			.catch((error) => {
-				world.set(Fonts, {
-					list: fonts.filter((f) => f.source !== font.source && f.weight !== font.weight),
-				});
-				reject(error);
-			});
-	});
-
-	return font;
 }

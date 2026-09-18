@@ -13,6 +13,7 @@ import { WhisperCaptionDecoder, WHISPER_TEXT_STYLE } from './whisper';
 import { PaperCaptionDecoder, PAPER_TEXT_STYLE } from './paper';
 import { GuineaCaptionDecoder, GUINEA_TEXT_STYLE } from './guinea';
 import { StarkCaptionDecoder, STARK_TEXT_STYLE } from './stark';
+import { ArtistCaptionDecoder, ARTIST_TEXT_STYLE } from './artist';
 
 import type { Entity, World } from 'koota';
 import type { Asset } from '@diffusionstudio/assets';
@@ -26,6 +27,7 @@ export { WhisperCaptionDecoder } from './whisper';
 export { PaperCaptionDecoder } from './paper';
 export { GuineaCaptionDecoder } from './guinea';
 export { StarkCaptionDecoder } from './stark';
+export { ArtistCaptionDecoder } from './artist';
 export * from './position';
 export * from './subtitles';
 export * from './utils';
@@ -44,6 +46,7 @@ export const CAPTION_PRESET_STYLES: Record<CaptionType, CaptionPresetStyle> = {
 	[CaptionType.PAPER]: PAPER_TEXT_STYLE,
 	[CaptionType.GUINEA]: GUINEA_TEXT_STYLE,
 	[CaptionType.STARK]: STARK_TEXT_STYLE,
+	[CaptionType.ARTIST]: ARTIST_TEXT_STYLE,
 };
 
 /**
@@ -61,6 +64,7 @@ export const CAPTION_PRESET_FILLS: Record<CaptionType, number | undefined> = {
 	[CaptionType.PAPER]: 0xFFFFFF,
 	[CaptionType.GUINEA]: 0xFFFFFF,
 	[CaptionType.STARK]: undefined,
+	[CaptionType.ARTIST]: 0xFFFFFF,
 };
 
 function createCaptionDecoder(type: CaptionType, asset: Asset): CaptionDecoder {
@@ -79,6 +83,8 @@ function createCaptionDecoder(type: CaptionType, asset: Asset): CaptionDecoder {
 			return new GuineaCaptionDecoder(asset);
 		case CaptionType.STARK:
 			return new StarkCaptionDecoder(asset);
+		case CaptionType.ARTIST:
+			return new ArtistCaptionDecoder(asset);
 		default:
 			return new ClassicCaptionDecoder(asset);
 	}

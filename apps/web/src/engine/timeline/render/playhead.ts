@@ -32,7 +32,9 @@ export function renderPlayhead(world: World, scene: Entity, surface: TimelineSur
 	const { ctx, canvas } = surface;
 	if (!ctx || !canvas) return;
 
-	const frame = getCurrentFrame(world, scene);
+	// The renderer receives the temporarily sought frame so the stage previews
+	// it. Draw the committed playhead separately until a click accepts it.
+	const frame = surface.skimStartFrame ?? getCurrentFrame(world, scene);
 	const scrollX = getScrollX(world, scene);
 	const resolution = getResolution(world, scene);
 
@@ -73,6 +75,28 @@ export function renderPlayhead(world: World, scene: Entity, surface: TimelineSur
 	ctx.lineWidth = 1;
 	ctx.stroke();
 
+	ctx.restore();
+
+	renderSkimmer(world, scene, surface);
+}
+
+/** A thin, deliberately different line for a non-committed hover preview. */
+function renderSkimmer(world: World, scene: Entity, surface: TimelineSurfaceState): void {
+	const { ctx, canvas, skimFrame } = surface;
+	if (!ctx || !canvas || skimFrame === null) return;
+
+	const resolution = getResolution(world, scene);
+	const scrollX = getScrollX(world, scene);
+	const x = framesToPixels(skimFrame, resolution) - scrollX * resolution;
+
+	ctx.save();
+	ctx.setLineDash([4, 3]);
+	ctx.strokeStyle = surface.colors.border.scrubber;
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(x, 0);
+	ctx.lineTo(x, canvas.height);
+	ctx.stroke();
 	ctx.restore();
 }
 

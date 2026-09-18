@@ -9,7 +9,7 @@
  * controller itself never paints.
  */
 
-import { getTimelineView } from '@diffusionstudio/runtime';
+import { getTimelineView, Playback, setPlayhead } from '@diffusionstudio/runtime';
 
 import { assert, clamp } from '@/utils';
 import { getDocumentEditor } from '@/engine/editor';
@@ -18,6 +18,7 @@ import { TimelineSurface } from './surface';
 import { timelineSystem } from './timeline';
 import {
 	getResolution,
+	getCurrentFrame,
 	getScrollX,
 	getScrollY,
 	getTimelineScene,
@@ -214,6 +215,42 @@ export function createTimelineController(world: World) {
 		surface.minimized = minimized;
 	};
 
+	/** Restores a temporary hover preview without creating an edit or history entry. */
+	const clearSkimmer = (): void => {
+		withScene((scene) => {
+			if (surface.skimStartFrame !== null) setPlayhead(world, scene, surface.skimStartFrame);
+			surface.skimFrame = null;
+			surface.skimStartFrame = null;
+		});
+	};
+
+	/** Previews the frame below the pointer while the timeline is paused. */
+	const updateSkimmer = (event: PointerEvent): void => {
+		withScene((scene) => {
+			if (!surface.skimming || event.buttons !== 0 || scene.get(Playback)?.playing) {
+				clearSkimmer();
+				return;
+			}
+
+			if (surface.skimStartFrame === null) surface.skimStartFrame = getCurrentFrame(world, scene);
+			const frame = Math.max(0, clientToFrame(event.clientX));
+			surface.skimFrame = frame;
+			setPlayhead(world, scene, frame);
+		});
+	};
+
+	const commitSkimmer = (): void => {
+		// The temporary seek already put the preview in the viewer. Dropping the
+		// restore marker makes this normal click a committed seek.
+		surface.skimFrame = null;
+		surface.skimStartFrame = null;
+	};
+
+	const handlePointerDown = (event: PointerEvent): void => {
+		commitSkimmer();
+		pointer.down(event);
+	};
+
 	const attachCanvas = (): void => {
 		const canvas = document.getElementById('timeline-canvas') as HTMLCanvasElement | null;
 		assert(canvas, 'Timeline canvas must be defined');
@@ -228,7 +265,9 @@ export function createTimelineController(world: World) {
 		observer.observe(parent);
 
 		canvas.addEventListener('wheel', handleWheel);
-		canvas.addEventListener('pointerdown', pointer.down, { passive: true });
+		canvas.addEventListener('pointermove', updateSkimmer, { passive: true });
+		canvas.addEventListener('pointerleave', clearSkimmer);
+		canvas.addEventListener('pointerdown', handlePointerDown, { passive: true });
 
 		applyResize();
 	};
@@ -237,7 +276,10 @@ export function createTimelineController(world: World) {
 		observer.disconnect();
 
 		surface.canvas?.removeEventListener('wheel', handleWheel);
-		surface.canvas?.removeEventListener('pointerdown', pointer.down);
+		surface.canvas?.removeEventListener('pointermove', updateSkimmer);
+		surface.canvas?.removeEventListener('pointerleave', clearSkimmer);
+		surface.canvas?.removeEventListener('pointerdown', handlePointerDown);
+		clearSkimmer();
 
 		// Dropped rather than kept stale: the draw pass no-ops until another
 		// canvas is attached.

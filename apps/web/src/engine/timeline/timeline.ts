@@ -10,6 +10,7 @@
  */
 
 import { useCursor } from '@/hooks/use-cursor';
+import { Playback, setPlayhead } from '@diffusionstudio/runtime';
 import { RULER_HEIGHT } from './config';
 import { renderLayers, renderMarquee, renderPlayhead, renderRuler, renderSnapLine, renderWorkarea, updateMarquee } from './render';
 import { updateDragGestures } from './drag';
@@ -31,6 +32,15 @@ export function timelineSystem(world: World): void {
 	if (scene === null) {
 		clearTimeline(surface, canvas, ctx, pointer);
 		return;
+	}
+
+	// Hover skimming only borrows the viewer playhead. Starting playback must
+	// resume from the last committed position, rather than from the frame that
+	// happened to be below the pointer when Space was pressed.
+	if (scene.get(Playback)?.playing && surface.skimStartFrame !== null) {
+		setPlayhead(world, scene, surface.skimStartFrame);
+		surface.skimStartFrame = null;
+		surface.skimFrame = null;
 	}
 
 	// Re-derived every pass rather than only on gestures: the view store can

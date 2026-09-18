@@ -8,8 +8,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "scripts": {
-    "check": "tsc --noEmit"
+	"scripts": {
+		"check": "tsc --noEmit",
+		"test": "vitest run test/song-timing.test.ts"
   },
   "keywords": [
     "assets",
