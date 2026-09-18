@@ -94,6 +94,9 @@ async function reconcileCodecs(settings: ExportConfig, format: ContainerFormat):
 export const exportScene: ToolHandler<"export"> = async ({ id, path }, ctx) => {
   const { world, project, engine } = ctx.requireSession();
   const scene = requireScene(world, id, "export");
+  if (path !== undefined) {
+    throw new DapiError("invalid-input", "Exports stay in this project's managed exports folder.");
+  }
 
   // The scene's entry in the project's package.json (`diffusion.export.<id>`)
   // — the same one the app's export panel writes — so a tool export
@@ -103,7 +106,8 @@ export const exportScene: ToolHandler<"export"> = async ({ id, path }, ctx) => {
   const format = resolveFormat(path, { format: base.format, video: base.video, audio: base.audio });
   const settings = await reconcileCodecs({ format, video: base.video, audio: base.audio }, format);
   const key = sceneConfigKey(scene) ?? id;
-  const target = path ?? `${project.dir()}/exports/${key.replace(/[^\w.-]+/g, "-")}.${format}`;
+  const revision = new Date().toISOString().replace(/[:.]/g, "-");
+  const target = `${project.dir()}/exports/${key.replace(/[^\w.-]+/g, "-")}-${revision}.${format}`;
 
   // Fail before the render machinery spins up: an unencodable configuration
   // is known right away (same precheck the UI export runs).
@@ -138,7 +142,7 @@ export const exportScene: ToolHandler<"export"> = async ({ id, path }, ctx) => {
     throw new DapiError("busy", "An export is already running — wait for it to finish, or cancel it in the app.");
   }
 
-  const handle = new ElectronWritableFileHandle(target);
+  const handle = new ElectronWritableFileHandle(target, project.dir());
   try {
     const result = await renderScene(engine, { scene, target: handle, config: { ...settings, format }, dir: project.dir() });
     if (result.type === "canceled") throw new DapiError("canceled", "Export canceled in the app");

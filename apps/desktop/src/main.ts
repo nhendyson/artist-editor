@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { app, BrowserWindow, nativeImage, session, shell } from "electron";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { existsSync } from "node:fs";
-import { mkdir, open, rename, unlink } from "node:fs/promises";
+import { open, rename, unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import type { FileHandle } from "node:fs/promises";
 import { updateElectronApp } from "update-electron-app";
 import { tempPathFor } from "./atomic";
+import { prepareManagedWrite } from "./managed-write";
 import { DapiServer } from "./dapi/server";
 import { agentChatEndpoint, deleteProjectChats, startAgentChat, stopAgentChat } from "./agent-chat";
 import { cliStatus, installCli, uninstallCli } from "./cli-install";
@@ -336,25 +337,25 @@ if (app.requestSingleInstanceLock()) {
     setFileInputFiles(selector, absolutePath),
   );
 
-  mainBridge.handle(MAIN_CHANNELS.FILE_WRITE_OPEN, async ({ path, exclusive }) => {
-    await mkdir(dirname(path), { recursive: true });
+  mainBridge.handle(MAIN_CHANNELS.FILE_WRITE_OPEN, async ({ root, path, exclusive }) => {
+    const managedPath = await prepareManagedWrite(root, path);
 
     // `exclusive` means the name must be free, so it is taken now rather than
     // at the rename below — the empty file that reserves it is renamed over
     // when the write finishes, and removed when it is abandoned.
     if (exclusive) {
-      noteContent(path, "");
-      await (await open(path, "wx")).close();
+      noteContent(managedPath, "");
+      await (await open(managedPath, "wx")).close();
     }
 
     // The bytes go to a temp file beside the destination and are renamed into
     // place once they are whole. Nothing ever sees half an asset — not the
     // watcher, not a scan of the library, not an import — so there is no
     // window anyone has to be kept out of.
-    const temp = tempPathFor(path);
+    const temp = tempPathFor(managedPath);
     const handle = await open(temp, "wx");
     const id = randomUUID();
-    openWrites.set(id, { handle, path, temp, reserved: exclusive === true });
+    openWrites.set(id, { handle, path: managedPath, temp, reserved: exclusive === true });
     return { id };
   });
 

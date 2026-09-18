@@ -15,9 +15,9 @@ import { isAbsoluteSource } from '@diffusionstudio/assets';
 
 import type { Manifest, ProjectFS } from '@diffusionstudio/assets';
 
-/** Streams `blob` to an absolute path in chunks. */
-async function writeBlob(path: string, blob: Blob): Promise<void> {
-	const target = new ElectronWritableFileHandle(path);
+/** Streams `blob` to an absolute path below `root` in chunks. */
+async function writeBlob(root: string, path: string, blob: Blob): Promise<void> {
+	const target = new ElectronWritableFileHandle(path, root);
 	const writable = await target.createWritable();
 	const writer = writable.getWriter();
 	try {
@@ -49,7 +49,7 @@ export function createProjectFS(dir: string): ProjectFS {
 		list: (source) => mainBridge.call(MAIN_CHANNELS.PROJECTS_FS_LIST, { dir, source }),
 		stat: (source) => mainBridge.call(MAIN_CHANNELS.PROJECTS_FS_STAT, { dir, source }),
 		file: (source) => new ElectronFileHandle(absolute(source)).getFile(),
-		write: (path, blob) => writeBlob(absolute(path), blob),
+		write: (path, blob) => writeBlob(dir, absolute(path), blob),
 		remove: (path) => mainBridge.call(MAIN_CHANNELS.PROJECTS_FS_REMOVE, { dir, path }),
 		realPath: (source) => mainBridge.call(MAIN_CHANNELS.PROJECTS_FS_REAL_PATH, { dir, source }),
 		pathOf: (file) => window.desktop?.getPathForFile(file) || null,

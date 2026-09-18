@@ -15,18 +15,21 @@ import type { WritableFileTarget } from "@diffusionstudio/encoder";
 // the renderer. Desktop only (relies on the main bridge).
 export class ElectronWritableFileHandle implements WritableFileTarget {
   readonly path: string;
+  readonly root: string;
   // Tracks the in-flight write so callers can abort + clean up a partial file
   // on error paths mediabunny doesn't surface through the stream itself.
   private openId: string | null = null;
 
-  constructor(path: string) {
+  constructor(path: string, root: string) {
     this.path = path;
+    this.root = root;
   }
 
   async createWritable(opts?: { exclusive?: boolean }): Promise<WritableStream<StreamTargetChunk>> {
     const { id } = await mainBridge.call(MAIN_CHANNELS.FILE_WRITE_OPEN, {
       ...opts,
       path: this.path,
+      root: this.root,
     });
     this.openId = id;
 

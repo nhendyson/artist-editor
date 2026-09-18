@@ -54,7 +54,8 @@ its original location and is never added to this repository.
 | Hover skimming | BUILD-CHECKED | Implemented through the existing timeline controller; desktop automation could not attach for visual interaction testing |
 | Save/reopen and crop/style persistence | PENDING MANUAL REVIEW | Uses Diffusion's normal document editor/persistence rather than a parallel store |
 | Master-audio envelope/export comparison | PENDING | Camera tracks are muted and source audio is singular by construction; no encoded-reference export comparison yet |
-| Network-denied runtime and managed-write adversarial cases | PENDING | Cloud captions, analytics startup, crash startup and remote fonts are disabled; a controlled offline/path test remains |
+| Managed project writes | PASS | `apps/desktop/src/managed-write.test.ts` covers allowed nested writes plus blocked traversal and symlink escapes |
+| Network-denied runtime | PENDING | Cloud captions, analytics startup, crash startup and remote fonts are disabled; a controlled offline runtime test remains |
 | Advanced word builds, karaoke, Brat treatment, multi-section editing | DEFERRED | They need reviewed word timing and an artist-specific cue inspector rather than guessed timing or a generic lookalike |
 
 ## Known product limits

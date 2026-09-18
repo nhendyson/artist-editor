@@ -188,7 +188,7 @@ export type MainRequestMap = {
     response: void;
   };
   [MAIN_CHANNELS.FILE_WRITE_OPEN]: {
-    request: { path: string; exclusive?: boolean };
+    request: { root: string; path: string; exclusive?: boolean };
     response: { id: string };
   };
   [MAIN_CHANNELS.FILE_WRITE_CHUNK]: {
