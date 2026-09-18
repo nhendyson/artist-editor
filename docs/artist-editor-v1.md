@@ -24,10 +24,13 @@ recording and reuse a section on several one-shot drafts without losing manual w
   transcript and the local master recording. It hashes the full master file,
   creates an approved revision only after an explicit review check, and writes
   it to the project library for reuse.
-- Song timing review shows every local caption line before approval. An artist
-  can edit each line's text, start, and exclusive end in seconds, or set each
-  line to hold until the next lyric starts. Those edits are written only into
-  the approved timing revision; the imported Whisper `.srt` remains unchanged.
+- Song timing review shows every local caption line in a waveform editor before
+  approval. An artist can play the exact local master, click to seek, zoom and
+  scroll, drag each lyric block, drag its start/end handles, make precision
+  edits to its text/times, or set every line to hold until the next lyric starts.
+  Those edits are written only into the approved timing revision; the imported
+  Whisper `.srt` remains unchanged. The first version is deliberately line
+  level: unknown word timing is never fabricated from an SRT.
 - An imported audio asset exposes **Transcribe locally**. It runs the fixed
   on-device `whisper-cli` runner against a user-selected local Whisper model,
   returns a local `.srt` asset, and never downloads a model or falls back to a
@@ -43,6 +46,8 @@ recording and reuse a section on several one-shot drafts without losing manual w
 - No second editor, renderer, agent framework, or storage service.
 - No hosted transcription, remote fonts, analytics, or crash upload in the local
   profile. Codex context sharing is a separately scoped exception.
+- The local desktop bundle builds without cloud-auth credentials. When those
+  credentials are absent, only offline editor paths are available.
 - Originals are immutable. Exports are versioned and never overwrite a source.
 - Unknown lyrics and missing word times stay unknown; they are never invented.
 - A local transcription is a draft: it must be reviewed before it can become
