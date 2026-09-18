@@ -7,9 +7,10 @@ cd "/Users/noah/Documents/My Projects/ClaudeX/artist-editor"
 npm run dev:desktop
 ```
 
-Use the `main` branch of `nhendyson/artist-editor`. The source checkout is
-isolated from the stock Diffusion install; imported media remains linked from
-its original location and is never added to this repository.
+Use the `main` branch of `nhendyson/artist-editor`, reviewed at `b9d4d3c`.
+The source checkout is isolated from the stock Diffusion install; imported
+media remains linked from its original location and is never added to this
+repository.
 
 ## Review the local reuse workflow
 
@@ -66,3 +67,9 @@ the imported cue span. To support multiple named sections inside one complete
 song revision, we need the cue/timing inspector next. Editing a draft is native
 and stays local to that draft; it does not silently propagate changes to other
 drafts or rewrite the saved song timing.
+
+The upstream automatic-update mechanism remains enabled, so you retain normal
+manual update access and upstream security-update behavior. It was not changed
+as part of the local editing profile. Embedded Codex is constrained to the
+open workspace in source, but its approval behavior still needs a hands-on
+review before treating it as a completed trust boundary.
