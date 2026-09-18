@@ -66,6 +66,11 @@ const USER_DATA_QUERY = "lifetime_credit_balance,monthly_credit_balance,monthly_
 export function AuthProvider(props: { children: JSX.Element }) {
   const [session, setSession] = createSignal<Session | null>(null);
   const [isLoading, setIsLoading] = createSignal(true);
+  // Artist Editor runs locally in the desktop shell.  An upstream cloud
+  // account is optional there: when no Supabase client is configured, open
+  // the local editor rather than presenting login controls that cannot work.
+  // Browser builds still require a real session.
+  const localDesktopMode = () => !!window.desktop && !supabase;
   onMount(() => {
     if (!supabase) {
       setIsLoading(false);
@@ -293,7 +298,7 @@ export function AuthProvider(props: { children: JSX.Element }) {
     isPro,
     hasStripeCustomer,
     user: () => session()?.user ?? null,
-    isAuthenticated: () => !!session(),
+    isAuthenticated: () => localDesktopMode() || !!session(),
     isLoading,
     accessLevel,
     remainingCredits,

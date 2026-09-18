@@ -7,10 +7,15 @@ cd "/Users/noah/Documents/My Projects/ClaudeX/artist-editor"
 npm run dev:desktop
 ```
 
-Use the `main` branch of `nhendyson/artist-editor`, reviewed at `b9d4d3c`.
+Use the `main` branch of `nhendyson/artist-editor`, reviewed at `0fa9d93`.
 The source checkout is isolated from the stock Diffusion install; imported
 media remains linked from its original location and is never added to this
 repository.
+
+When this local desktop build has no configured Supabase account, it opens the
+editor directly. The inherited sign-in, billing, and cloud-generation paths do
+not become available merely by launching the app; local projects, timing, and
+caption work do not require an online account.
 
 ## Review the local reuse workflow
 
